@@ -21,10 +21,21 @@ import UserListPage from './pages/UserListPage';
 import UserEditPage from './pages/UserEditPage';
 import SellerRoute from './components/SellerRoute';
 import SellerPage from './pages/SellerPage';
+import SearchBox from './components/SearchBox';
+import SearchPage from './pages/SearchPage';
+import { useEffect, useState } from 'react';
+import { listProductCategories } from './actions/productActions';
+import { FaBars, FaTimes } from 'react-icons/fa'
+import LoadingBox from './components/LoadingBox'
+import MessageBox from './components/MessageBox'
+import DashboardPage from './pages/DashboardPage';
+import ChatBox from './components/ChatBox';
+import SupportPage from './pages/SupportPage';
 
 function App() {
 
   const cart = useSelector((state) => state.cart);
+  const [sidebarIsOpen, setSidebarIsOpen] = useState(false);
   const { cartItems } = cart;
 
   const userSignin = useSelector((state) => state.userSignin);
@@ -34,14 +45,39 @@ function App() {
     dispatch(signout());
   };
 
+  const productCategoryList = useSelector((state) => state.productCategoryList);
+  const {
+    loading: loadingCategories,
+    error: errorCategories,
+    categories,
+  } = productCategoryList;
+
+  useEffect(() => {
+    dispatch(listProductCategories());
+  }, [dispatch]);
+
   return (
     <BrowserRouter>
       <div className="grid-container">
         <header className="row">
           <div>
+            <button
+              type="button"
+              className="open-sidebar"
+              onClick={() => setSidebarIsOpen(true)}
+            >
+              <FaBars />
+            </button>
             <Link className="brand" to="/">
               amazona
             </Link>
+          </div>
+          <div>
+            <Route
+              render={({ history }) => (
+                <SearchBox history={history}></SearchBox>
+              )}
+            ></Route>
           </div>
           <div>
             <Link to="/cart">
@@ -105,12 +141,44 @@ function App() {
                   <li>
                     <Link to="/userlist">Users</Link>
                   </li>
+                  <li>
+                    <Link to="/support">Support</Link>
+                  </li>
                 </ul>
               </div>
             )}
           </div>
         </header>
-        <main>
+        <aside className={sidebarIsOpen ? 'open' : ''}>
+          <ul className="categories">
+            <li>
+              <strong>Categories</strong>
+              <button
+                onClick={() => setSidebarIsOpen(false)}
+                className="close-sidebar"
+                type="button"
+              >
+                <FaTimes />
+              </button>
+            </li>
+            {loadingCategories ? (
+              <LoadingBox></LoadingBox>
+            ) : errorCategories ? (
+              <MessageBox variant="danger">{errorCategories}</MessageBox>
+            ) : (
+              categories.map((c) => (
+                <li key={c}>
+                  <Link
+                    to={`/search/category/${c}`}
+                    onClick={() => setSidebarIsOpen(false)}
+                  >
+                    {c}
+                  </Link>
+                </li>
+              ))
+            )}
+          </ul>
+        </aside>
         <main>
           <Route path="/seller/:id" component={SellerPage}></Route>
           <Route path="/cart/:id?" component={CartPage}></Route>
@@ -127,12 +195,37 @@ function App() {
           <Route path="/placeorder" component={PlaceOrderPage}></Route>
           <Route path="/order/:id" component={OrderPage}></Route>
           <Route path="/orderhistory" component={OrderHistoryPage}></Route>
+          <Route
+            path="/search/name/:name?"
+            component={SearchPage}
+            exact
+          ></Route>
+          <Route
+            path="/search/category/:category"
+            component={SearchPage}
+            exact
+          ></Route>
+          <Route
+            path="/search/category/:category/name/:name"
+            component={SearchPage}
+            exact
+          ></Route>
+          <Route
+            path="/search/category/:category/name/:name/min/:min/max/:max/rating/:rating/order/:order/pageNumber/:pageNumber"
+            component={SearchPage}
+            exact
+          ></Route>
           <PrivateRoute
             path="/profile"
             component={ProfilePage}
           ></PrivateRoute>
           <AdminRoute
             path="/productlist"
+            component={ProductListPage}
+            exact
+          ></AdminRoute>
+           <AdminRoute
+            path="/productlist/pageNumber/:pageNumber"
             component={ProductListPage}
             exact
           ></AdminRoute>
@@ -146,7 +239,12 @@ function App() {
             path="/user/:id/edit"
             component={UserEditPage}
           ></AdminRoute>
-           <SellerRoute
+          <AdminRoute
+            path="/dashboard"
+            component={DashboardPage}
+          ></AdminRoute>
+          <AdminRoute path="/support" component={SupportPage}></AdminRoute>
+          <SellerRoute
             path="/productlist/seller"
             component={ProductListPage}
           ></SellerRoute>
@@ -156,8 +254,10 @@ function App() {
           ></SellerRoute>
           <Route path="/" component={HomePage} exact></Route>
         </main>
-        </main>
-        <footer className="row center">All right reserved</footer>
+        <footer className="row center">
+          {userInfo && !userInfo.isAdmin && <ChatBox userInfo={userInfo} />}
+          <div>All right reserved</div>{' '}
+        </footer>
       </div>
     </BrowserRouter>
   );

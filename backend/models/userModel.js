@@ -13,7 +13,7 @@ const userSchema = new mongoose.Schema(
       description: String,
       rating: { type: Number, default: 0, required: true },
       numReviews: { type: Number, default: 0, required: true },
-    },
+    }, 
   },
   {
     timestamps: true,
